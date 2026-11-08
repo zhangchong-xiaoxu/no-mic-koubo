@@ -2,7 +2,7 @@
 
 不录音、不开剪辑软件，用五步做一条竖屏口播视频：写稿 → 本地克隆配音 → 脚本处理和核对 → 自动截图 → Remotion 出片。
 
-这是我（张翀）做抖音口播视频的流水线精简版。原片和这套工程都是在 VS Code 里定好规则，让 Claude Opus 5.5 写的代码。
+这是我（张翀）做抖音口播视频的流水线精简版。原片工程的代码是我在 VS Code 里定好规则、让 Claude Opus 5.5 写的，这个模板也由 AI 从中精简而来。
 
 ```text
 script.json ──tts.py──▶ audio/narr/*.wav ──build_audio.py──▶ narration.wav + segments.json ──┐
