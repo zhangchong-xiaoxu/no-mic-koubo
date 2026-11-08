@@ -1,0 +1,6 @@
+audio/
+remotion/node_modules
+remotion/out/
+remotion/public/narration.wav
+remotion/public/shots/
+__pycache__/

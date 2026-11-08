@@ -1,0 +1,10 @@
+[
+ {
+  "url": "https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+  "out": "remotion/public/shots/example.png",
+  "width": 900,
+  "height": 1200,
+  "dpr": 2,
+  "loadMs": 4000
+ }
+]
