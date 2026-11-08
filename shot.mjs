@@ -20,17 +20,31 @@ const BROWSER = CANDIDATES.find((p) => existsSync(p));
 if (!BROWSER) throw new Error("No Chromium browser found; set BROWSER=/path/to/chrome");
 
 const jobs = JSON.parse(readFileSync(process.argv[2] ?? "shots.json", "utf8"));
-const port = 9333;
 const profile = mkdtempSync(join(tmpdir(), "cdp-"));
-const proc = spawn(BROWSER, ["--headless=new", `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, "--hide-scrollbars", "--lang=zh-CN", "about:blank"], { stdio: "ignore" });
+// Port 0 lets the browser pick a free port and write it to DevToolsActivePort.
+const proc = spawn(BROWSER, ["--headless=new", "--remote-debugging-port=0", `--user-data-dir=${profile}`, "--hide-scrollbars", "--lang=zh-CN", "about:blank"], { stdio: "ignore" });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-let page;
+let port, page;
 for (let i = 0; i < 50 && !page; i++) {
-  try { page = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()).find((t) => t.type === "page"); } catch {}
+  try {
+    port ??= Number(readFileSync(join(profile, "DevToolsActivePort"), "utf8").split("\n")[0]);
+    page = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()).find((t) => t.type === "page");
+  } catch {}
   if (!page) await sleep(200);
 }
-if (!page) { proc.kill(); throw new Error("browser did not start"); }
+// proc.kill() only stops the launcher on Windows and leaves the browser running; ask the browser itself to quit.
+const closeBrowser = async () => {
+  try {
+    const { webSocketDebuggerUrl } = await (await fetch(`http://127.0.0.1:${port}/json/version`)).json();
+    const b = new WebSocket(webSocketDebuggerUrl);
+    await new Promise((r) => (b.onopen = r));
+    b.send(JSON.stringify({ id: 1, method: "Browser.close" }));
+    await sleep(500);
+  } catch {}
+  proc.kill();
+};
+if (!page) { await closeBrowser(); throw new Error("browser did not start"); }
 
 const ws = new WebSocket(page.webSocketDebuggerUrl);
 await new Promise((r) => (ws.onopen = r));
@@ -45,6 +59,7 @@ const evaluate = async (expression) => {
 };
 
 await send("Page.enable");
+try {
 for (const j of jobs) {
   const width = j.width ?? 1080, height = j.height ?? 1920;
   await send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: j.dpr ?? 2, mobile: false });
@@ -63,5 +78,7 @@ for (const j of jobs) {
   writeFileSync(j.out, Buffer.from(r.result.data, "base64"));
   console.log("saved", j.out);
 }
-ws.close();
-proc.kill();
+} finally {
+  ws.close();
+  await closeBrowser();
+}
