@@ -29,3 +29,4 @@ python doctor.py --json
 - 稿子口播部分数字写汉字，字幕显示用 `display` 换回数字。
 - `build_audio.py --check` 是可选步骤：缺 ASR 模型或依赖时会跳过，不要为它下载 740 MB 模型，除非用户要。
 - `audio/`、`remotion/public/` 下的产物不提交。
+- 续做入口：[docs/PROGRESS.md](docs/PROGRESS.md)。
