@@ -38,7 +38,14 @@ def dur(p):
 
 
 def check(items):
-    import sherpa_onnx, soundfile as sf
+    try:
+        import sherpa_onnx, soundfile as sf
+    except ImportError:
+        print("skip --check: pip install sherpa-onnx soundfile numpy (optional; listen to the clips instead)")
+        return
+    if not os.path.exists(f"{ASR_MODEL}/model.int8.onnx"):
+        print(f"skip --check: ASR model not found at {ASR_MODEL} (optional, ~740 MB; see README)")
+        return
     rec = sherpa_onnx.OfflineRecognizer.from_fire_red_asr_ctc(
         model=f"{ASR_MODEL}/model.int8.onnx", tokens=f"{ASR_MODEL}/tokens.txt", num_threads=4)
     norm = lambda t: re.sub(r"[\W_]", "", t).lower()

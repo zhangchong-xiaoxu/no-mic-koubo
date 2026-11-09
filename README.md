@@ -9,11 +9,19 @@ script.json ──tts.py──▶ audio/narr/*.wav ──build_audio.py──▶
 shots.json  ──shot.mjs──▶ remotion/public/shots/*.png ─────────────────────────────────────────┴─▶ remotion render ▶ out/video.mp4
 ```
 
+## 交给 AI 做
+
+在任意带 AI 助手的 IDE 里（Claude Code、Copilot、豆包、WorkBuddy 等），把仓库地址和下面这句话发给它：
+
+> 克隆这个仓库，先读 AGENTS.md，运行 `python doctor.py --json` 检查我的机器，缺什么先告诉我、我同意再装，然后帮我做一条口播视频。
+
+`doctor.py` 只检测、不安装：它查 ffmpeg、Node、浏览器、显卡和显存、Docker、TTS 服务，给出缺项、安装命令和推荐的配音方案。AGENTS.md 是给助手读的入口，不是所有 IDE 都会自动读取，所以请把这句话一起发过去。
+
 ## 需要准备
 
 | 东西 | 用途 | 备注 |
 |---|---|---|
-| Docker + NVIDIA 显卡 | 跑本地 TTS | 我用 RTX 4060 Ti 16G；8 秒音频约 4 秒生成 |
+| Docker + NVIDIA 显卡 | 跑本地 TTS | 我用 RTX 4060 Ti 16G；8 秒音频约 4 秒生成。显存较小用 `--size 0.6B`；没有 NVIDIA 显卡见下方兜底 |
 | [faster-qwen3-tts-studio](https://github.com/hangry-labs/faster-qwen3-tts-studio) | Qwen3-TTS 的网页界面 + OpenAI 兼容接口 | 预设音色、一句话设计声音、十几秒克隆 |
 | Python 3.10+ | `tts.py`（只用标准库）、`build_audio.py` | 核对步骤另装 `pip install sherpa-onnx soundfile numpy` |
 | ffmpeg | 去静音、变速、响度 | 需在 PATH 里 |
@@ -36,7 +44,10 @@ docker run -d --name faster-qwen3-tts-studio --gpus all -p 127.0.0.1:7860:7860 \
 
 ```bash
 python tts.py              # 已有的 wav 不重做；单句重来：python tts.py --only s03 --seed 11
+python tts.py --size 0.6B  # 显存较小时用 0.6B 模型
 ```
+
+没有 NVIDIA 显卡（Mac 也是）或装不了 Docker 时，用联网兜底：`pip install edge-tts`，再 `python tts.py --backend edge`。它免费，但**稿子会发给微软的在线服务**，也不能克隆自己的声音；音色在 `script.json` 里用 `edge_voice` 指定（默认 `zh-CN-XiaoxiaoNeural`）。
 
 **③ 处理和核对**：去首尾静音、加速（默认 `tempo` 1.2，保持音高）、每句 −16 LUFS，拼成整轨并写出时间轴。`--check` 用语音识别把每句听一遍，相似度低于 0.85 标 `CHECK`。
 
@@ -44,7 +55,7 @@ python tts.py              # 已有的 wav 不重做；单句重来：python tts
 python build_audio.py --check
 ```
 
-核对用的 FireRed 模型（Apache-2.0，解压后约 740 MB）需先下载到 `~/.cache/koubo/`，或用 `KOUBO_ASR_MODEL` 指定路径：
+`--check` 是可选的，缺依赖或模型时会跳过。核对用的 FireRed 模型（Apache-2.0，解压后约 740 MB）需先下载到 `~/.cache/koubo/`，或用 `KOUBO_ASR_MODEL` 指定路径：
 
 ```bash
 mkdir -p ~/.cache/koubo && cd ~/.cache/koubo
